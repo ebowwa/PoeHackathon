@@ -106,28 +106,28 @@ export async function POST(request: Request): Promise<NextResponse<GenerateVideo
         },
       }
     );
-
+  
     // Log the complete FAL API response
     console.log("FAL API response:", result);
-
+  
     if (result.videos && result.videos.length > 0) {
       // Generate a unique message ID
       const messageId = `m-${randomBytes(16).toString("hex")}`;
-
+  
       // Create an EventStream instance
       const eventStream = new EventStream();
-
+  
       // Send the text events with the generated video URL
       await eventStream.sendEvent("meta", { content_type: "text/markdown", suggested_replies: false });
       await eventStream.sendEvent("text", { text: `Here is the generated video: ${result.videos[0].url}` });
       await eventStream.sendEvent("done");
-
+  
       // Close the EventStream
       await eventStream.close();
-
+  
       // Get the readable stream from the EventStream
       const readable = eventStream.getReader();
-
+  
       // Create a NextResponse with the readable stream and appropriate headers
       const response = new NextResponse<GenerateVideoResponse>(
         readable,
@@ -140,11 +140,11 @@ export async function POST(request: Request): Promise<NextResponse<GenerateVideo
           status: 200,
         }
       );
-
+  
       return response;
     } else {
       // Handle the case when no video is generated
-      console.error("No video generated");
+      console.error("No video generated in the FAL API response");
       return NextResponse.json<GenerateVideoResponse>(
         { videoUrl: null, error: "No video generated" },
         { status: 500 }
