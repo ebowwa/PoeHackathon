@@ -3,6 +3,7 @@ import * as fal from "@fal-ai/serverless-client";
 import { NextResponse } from "next/server";
 import config from "@/data/config.json";
 import { randomBytes } from "crypto";
+import { EventStream, isValidRequest, Message, PoeRequest, QueryRequest } from "@/utils/poeUtils";
 
 interface FalVideoResult {
   url: string;
@@ -54,27 +55,18 @@ export async function POST(request: Request): Promise<NextResponse<GenerateVideo
   }
 
   // Parse the request body
-  const requestBody = await request.json();
+  const poeRequest = await request.json() as PoeRequest;
 
-  // Extract the required fields from the request body
-  const {
-    query,
-    user_id,
-    conversation_id,
-    metadata,
-    temperature,
-    skip_system_prompt,
-    stop_sequences,
-    logit_bias,
-  } = requestBody;
-
-  // Validate the required fields
-  if (!query || !user_id || !conversation_id) {
+  // Validate the request using the utility function
+  if (!isValidRequest(poeRequest)) {
     return NextResponse.json<GenerateVideoResponse>(
-      { videoUrl: null, error: "Missing required fields in the request body" },
+      { videoUrl: null, error: "Invalid request" },
       { status: 400 }
     );
   }
+
+  // Extract the required fields from the request body
+  const { query, user_id, conversation_id, metadata } = poeRequest as QueryRequest;
 
   // Configure the FAL API key
   fal.config({
@@ -108,32 +100,23 @@ export async function POST(request: Request): Promise<NextResponse<GenerateVideo
       // Generate a unique message ID
       const messageId = `m-${randomBytes(16).toString("hex")}`;
 
-      // Send the text events with the generated video URL
-      const textEvents = [
-        {
-          event: "meta",
-          data: JSON.stringify({ content_type: "text/markdown", suggested_replies: false }),
-        },
-        {
-          event: "text",
-          data: JSON.stringify({ text: `Here is the generated video: ${result.videos[0].url}` }),
-        },
-        {
-          event: "done",
-          data: JSON.stringify({}),
-        },
-      ];
+      // Create an EventStream instance
+      const eventStream = new EventStream();
 
-      // Send the server-sent events as the response
+      // Send the text events with the generated video URL
+      await eventStream.sendEvent("meta", { content_type: "text/markdown", suggested_replies: false });
+      await eventStream.sendEvent("text", { text: `Here is the generated video: ${result.videos[0].url}` });
+      await eventStream.sendEvent("done");
+
+      // Close the EventStream
+      await eventStream.close();
+
+      // Get the readable stream from the EventStream
+      const readable = eventStream.getReader();
+
+      // Create a NextResponse with the readable stream and appropriate headers
       const response = new NextResponse<GenerateVideoResponse>(
-        new ReadableStream({
-          async start(controller) {
-            for (const event of textEvents) {
-              controller.enqueue(new TextEncoder().encode(`${event.event}: ${event.data}\n\n`));
-            }
-            controller.close();
-          },
-        }),
+        readable,
         {
           headers: {
             "Content-Type": "text/event-stream",
