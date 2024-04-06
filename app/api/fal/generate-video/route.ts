@@ -51,6 +51,7 @@ export async function GET(request: Request): Promise<NextResponse<GenerateVideoR
     credentials: falKey,
   });
 
+  // Uncomment the following section to use the config.json values
   const result = await fal.subscribe<FalResult, FalInput>(
     config.video_model,
     {
