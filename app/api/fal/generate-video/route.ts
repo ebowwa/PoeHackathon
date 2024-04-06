@@ -37,6 +37,20 @@ interface GenerateVideoResponse {
 }
 
 export async function GET(request: Request): Promise<NextResponse<GenerateVideoResponse>> {
+  const falKey = process.env.NEXT_PUBLIC_FAL_KEY;
+
+  if (!falKey) {
+    return NextResponse.json(
+      { videoUrl: null, error: "Missing API key" },
+      { status: 500 }
+    );
+  }
+
+  // Configure the FAL API key
+  fal.config({
+    credentials: falKey,
+  });
+
   const result = await fal.subscribe<FalResult, FalInput>(
     config.video_model,
     {
@@ -49,7 +63,7 @@ export async function GET(request: Request): Promise<NextResponse<GenerateVideoR
         },
         num_inference_steps: config.num_inference_steps,
         fps: config.fps,
-        videos: [], // Add this line to include the 'videos' property with an empty array
+        videos: [],
       },
       pollInterval: 5000,
       logs: true,

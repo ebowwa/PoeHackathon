@@ -30,8 +30,3 @@ export default function PoeBotLandingPage() {
     </div>
   );
 }
-
-export async function GET(request: Request) {
-  // Handle GET requests to the API
-  return NextResponse.json({ message: 'This is a serverless API site for PoE bots' });
-}
