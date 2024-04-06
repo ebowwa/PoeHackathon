@@ -1,7 +1,7 @@
 import * as fal from "@fal-ai/serverless-client";
 import { NextResponse } from "next/server";
 import { isValidRequest, PoeRequest } from "@/utils/poeUtils";
-import { ApiError, ValidationError } from "@fal-ai/serverless-client/src/response";
+import { ApiError, ValidationError } from "@fal-ai/serverless-client";
 
 interface FalVideoResult {
   url: string;
@@ -55,7 +55,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   });
 
   try {
-    const subscription = await fal.subscribe<FalResult, FalInput>(
+    const result = await fal.run<FalInput, FalResult>(
       process.env.VIDEO_MODEL || "fal-ai/fast-sdxl",
       {
         input: {
@@ -66,19 +66,11 @@ export async function POST(request: Request): Promise<NextResponse> {
           fps,
           videos: [],
         },
-        pollInterval: 5000,
-        logs: true,
-        onQueueUpdate(update) {
-          console.log("queue update", update);
-        },
       }
     );
 
-    const result: any = await subscription;
-    const finalResult: FalResult = await result.getFinalResult();
-
-    if (finalResult.videos && finalResult.videos.length > 0) {
-      const videoUrl = finalResult.videos[0].url;
+    if (result.videos && result.videos.length > 0) {
+      const videoUrl = result.videos[0].url;
       return NextResponse.json({ videoUrl }, { status: 200 });
     } else {
       return NextResponse.json({ error: "No video generated" }, { status: 500 });
