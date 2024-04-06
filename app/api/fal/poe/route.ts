@@ -2,9 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
-export const config = {
-  runtime: 'edge',
-};
+export const runtime = "edge"
 
 type Role = 'system' | 'user' | 'bot';
 
