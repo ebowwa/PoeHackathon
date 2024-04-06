@@ -155,18 +155,8 @@ export async function POST(request: Request): Promise<NextResponse<GenerateVideo
   } catch (error) {
     // Handle any errors that occur during the FAL API request
     console.error("Error generating video:", error);
-
-    // Extract the error details from the ValidationError
-    let errorMessage = "An error occurred while generating the video";
-    if (error instanceof fal.ValidationError) {
-      const errorDetails = error.body.detail;
-      if (Array.isArray(errorDetails) && errorDetails.length > 0) {
-        errorMessage = errorDetails[0].msg || errorMessage;
-      }
-    }
-
     return NextResponse.json<GenerateVideoResponse>(
-      { videoUrl: null, error: errorMessage },
+      { videoUrl: null, error: "An error occurred while generating the video" },
       { status: 500 }
     );
   }
