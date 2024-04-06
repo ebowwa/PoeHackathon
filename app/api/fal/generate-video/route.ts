@@ -85,7 +85,7 @@ export async function POST(request: Request): Promise<NextResponse<GenerateVideo
     credentials: falKey,
   });
 
-  const videoModel = process.env.VIDEO_MODEL || "YOUR_DEFAULT_MODEL_NAME";
+  const videoModel = process.env.VIDEO_MODEL || "fal-ai/fast-sdxl";
 
   try {
     const result = await fal.subscribe<FalResult, FalInput>(
