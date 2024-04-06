@@ -29,8 +29,6 @@ interface FalInput {
   num_inference_steps?: number;
   fps: number;
   videos?: FalVideoResult[];
-  prompt_prefix: string;
-  prompt_suffix: string;
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
@@ -40,56 +38,47 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   const falKey = process.env.NEXT_PUBLIC_FAL_KEY;
-
   if (!falKey) {
     return NextResponse.json({ error: "Missing API key" }, { status: 500 });
   }
 
-  // Parse the request body
   const poeRequest = await request.json();
-
-  // Validate the request using the utility function
   if (!isValidRequest(poeRequest)) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 
-  // Extract the required fields from the request body
-  const {
-    negativePrompt,
-    image_size,
-    num_inference_steps,
-    fps,
-    prompt_prefix,
-    prompt_suffix,
-  } = poeRequest as unknown as FalInput;
-  const { query } = poeRequest as any;
+  const { negativePrompt, image_size, num_inference_steps, fps } = poeRequest as unknown as FalInput;
+  const { query, prompt_prefix, prompt_suffix } = poeRequest as any;
 
-  // Configure the FAL API key
   fal.config({
     credentials: falKey,
   });
 
-  const videoModel = process.env.VIDEO_MODEL || "fal-ai/fast-sdxl";
-
   try {
-    const result = await fal.subscribe<FalResult, FalInput>(videoModel, {
-      input: {
-        prompt: `${prompt_prefix} ${query[query.length - 1].content} ${prompt_suffix}`,
-        negativePrompt,
-        image_size,
-        num_inference_steps,
-        fps,
-        videos: [],
-      },
-      pollInterval: 5000,
-      logs: true,
-      onQueueUpdate(update) {
-        console.log("queue update", update);
-      },
-    });
+    const subscription = await fal.subscribe<FalResult, FalInput>(
+      process.env.VIDEO_MODEL || "fal-ai/fast-sdxl",
+      {
+        input: {
+          prompt: `${prompt_prefix} ${query[query.length - 1].content} ${prompt_suffix}`,
+          negativePrompt,
+          image_size,
+          num_inference_steps,
+          fps,
+          videos: [],
+        },
+        pollInterval: 5000,
+        logs: true,
+        onQueueUpdate(update) {
+          console.log("queue update", update);
+        },
+      }
+    );
 
-    if (result.videos && result.videos.length > 0) {
-      const videoUrl = result.videos[0].url;
+    const result: any = await subscription;
+    const finalResult: FalResult = await result.getFinalResult();
+
+    if (finalResult.videos && finalResult.videos.length > 0) {
+      const videoUrl = finalResult.videos[0].url;
       return NextResponse.json({ videoUrl }, { status: 200 });
     } else {
       return NextResponse.json({ error: "No video generated" }, { status: 500 });
