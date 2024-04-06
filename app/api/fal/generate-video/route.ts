@@ -1,5 +1,4 @@
 // app/api/fal/generate-video/route.ts
-
 import * as fal from "@fal-ai/serverless-client";
 import { NextResponse } from "next/server";
 import config from "@/data/config.json";
@@ -38,6 +37,12 @@ interface GenerateVideoResponse {
 }
 
 export async function GET(request: Request): Promise<NextResponse<GenerateVideoResponse>> {
+  // Check if the request is coming from the build process
+  if (request.headers.get('x-vercel-deployment-type') === 'preview') {
+    // Return a default response during the build process
+    return NextResponse.json({ videoUrl: null, error: 'API not available during build' }, { status: 500 });
+  }
+
   const falKey = process.env.NEXT_PUBLIC_FAL_KEY;
 
   if (!falKey) {
