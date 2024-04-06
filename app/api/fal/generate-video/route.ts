@@ -1,4 +1,5 @@
 // app/api/fal/generate-video/route.ts
+
 import * as fal from "@fal-ai/serverless-client";
 import { NextResponse } from "next/server";
 import config from "@/data/config.json";
