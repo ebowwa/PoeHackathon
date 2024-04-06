@@ -1,0 +1,14 @@
+{
+    "fal_model": "fal-ai/fast-sdxl",
+    "video_model": "fal-ai/fast-svd-lcm",
+    "prompt_prefix": "a realistic",
+    "prompt_suffix": "cinematic, ultra hd, high quality, video, cinematic, high quality",
+    "negative_prompt": "illustraiton, cartoon, blurry, text, not cinematic",
+    "image_size": {
+        "height": 576,
+        "width": 1024
+    },
+    "num_inference_steps": 30,
+    "fps": 6,
+    "introduction_message": "Welcome to the video maker bot (powered by fal.ai). Please provide me a prompt to start with or an image so I can generate a video from it."
+}
