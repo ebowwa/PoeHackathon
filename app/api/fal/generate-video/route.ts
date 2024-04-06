@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import config from "@/data/config.json";
 import { randomBytes } from "crypto";
 import { EventStream, isValidRequest, Message, PoeRequest, QueryRequest } from "@/utils/poeUtils";
+import { ApiError, ValidationError } from '@fal-ai/serverless-client/src/response';
 
 interface FalVideoResult {
   url: string;
@@ -96,6 +97,9 @@ export async function POST(request: Request): Promise<NextResponse<GenerateVideo
       }
     );
 
+    // Log the complete FAL API response
+    console.log("FAL API response:", result);
+
     if (result.videos && result.videos.length > 0) {
       // Generate a unique message ID
       const messageId = `m-${randomBytes(16).toString("hex")}`;
@@ -130,6 +134,7 @@ export async function POST(request: Request): Promise<NextResponse<GenerateVideo
       return response;
     } else {
       // Handle the case when no video is generated
+      console.error("No video generated");
       return NextResponse.json<GenerateVideoResponse>(
         { videoUrl: null, error: "No video generated" },
         { status: 500 }
@@ -138,6 +143,27 @@ export async function POST(request: Request): Promise<NextResponse<GenerateVideo
   } catch (error) {
     // Handle any errors that occur during the FAL API request
     console.error("Error generating video:", error);
+  
+    if (error instanceof ApiError) {
+      // Log the error details
+      console.error("Error message:", error.message);
+      console.error("Error status:", error.status);
+      console.error("Error body:", error.body);
+  
+      if (error instanceof ValidationError) {
+        // Handle validation errors
+        console.error("Validation error occurred. Field errors:", error.fieldErrors);
+  
+        // Log field-specific errors
+        const fieldErrors = error.getFieldErrors('prompt');
+        if (fieldErrors.length > 0) {
+          console.error("Prompt field errors:", fieldErrors);
+        }
+      }
+    } else {
+      console.error("An unknown error occurred:", error);
+    }
+  
     return NextResponse.json<GenerateVideoResponse>(
       { videoUrl: null, error: "An error occurred while generating the video" },
       { status: 500 }
