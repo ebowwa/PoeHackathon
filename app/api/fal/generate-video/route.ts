@@ -1,7 +1,6 @@
 // app/api/fal/generate-video/route.ts
 import * as fal from "@fal-ai/serverless-client";
 import { NextResponse } from "next/server";
-import config from "@/data/config.json";
 
 interface FalVideoResult {
   url: string;
@@ -51,19 +50,18 @@ export async function GET(request: Request): Promise<NextResponse<GenerateVideoR
     credentials: falKey,
   });
 
-  // Uncomment the following section to use the config.json values
   const result = await fal.subscribe<FalResult, FalInput>(
-    config.video_model,
+    "video-generation-model", // Replace with the actual video model name
     {
       input: {
-        prompt: `${config.prompt_prefix} ${config.prompt_suffix}`,
-        negative_prompt: config.negative_prompt,
+        prompt: "Your video generation prompt",
+        negative_prompt: "Negative prompt (if applicable)",
         image_size: {
-          height: config.image_size.height,
-          width: config.image_size.width,
+          height: 512,
+          width: 512,
         },
-        num_inference_steps: config.num_inference_steps,
-        fps: config.fps,
+        num_inference_steps: 50,
+        fps: 30,
         videos: [],
       },
       pollInterval: 5000,
