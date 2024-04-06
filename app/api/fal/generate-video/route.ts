@@ -1,9 +1,8 @@
 // app/api/fal/generate-video/route.ts
 import * as fal from "@fal-ai/serverless-client";
 import { NextResponse } from "next/server";
-import config from "@/data/config.json";
 import { randomBytes } from "crypto";
-import { EventStream, isValidRequest, Message, PoeRequest, QueryRequest } from "@/utils/poeUtils";
+import { EventStream, isValidRequest, PoeRequest } from "@/utils/poeUtils";
 import { ApiError, ValidationError } from '@fal-ai/serverless-client/src/response';
 
 interface FalVideoResult {
@@ -25,6 +24,7 @@ interface FalResult {
 interface FalInput {
   prompt: string;
   negativePrompt: string;
+  image_url: string;
   image_size: {
     height: number;
     width: number;
@@ -32,6 +32,8 @@ interface FalInput {
   num_inference_steps?: number;
   fps: number;
   videos?: FalVideoResult[];
+  prompt_prefix: string;
+  prompt_suffix: string;
 }
 
 interface GenerateVideoResponse {
@@ -56,7 +58,8 @@ export async function POST(request: Request): Promise<NextResponse<GenerateVideo
   }
 
   // Parse the request body
-  const poeRequest = await request.json() as PoeRequest;
+  const poeRequest = await request.json();
+  const { query } = poeRequest as any;
 
   // Validate the request using the utility function
   if (!isValidRequest(poeRequest)) {
@@ -67,26 +70,33 @@ export async function POST(request: Request): Promise<NextResponse<GenerateVideo
   }
 
   // Extract the required fields from the request body
-  const { query, user_id, conversation_id, metadata } = poeRequest as QueryRequest;
+  const {
+    image_url,
+    prompt_prefix,
+    prompt_suffix,
+    negativePrompt,
+    image_size,
+    num_inference_steps,
+    fps,
+  } = poeRequest as unknown as FalInput;
 
   // Configure the FAL API key
   fal.config({
     credentials: falKey,
   });
 
+  const videoModel = process.env.VIDEO_MODEL || "YOUR_DEFAULT_MODEL_NAME";
+
   try {
     const result = await fal.subscribe<FalResult, FalInput>(
-      config.video_model,
+      videoModel,
       {
         input: {
-          prompt: `${config.prompt_prefix} ${query[query.length - 1].content} ${config.prompt_suffix}`,
-          negativePrompt: config.negative_prompt,
-          image_size: {
-            height: config.image_size.height,
-            width: config.image_size.width,
-          },
-          num_inference_steps: config.num_inference_steps,
-          fps: config.fps,
+          prompt: `${prompt_prefix} ${query[query.length - 1].content} ${prompt_suffix}`,
+          negativePrompt,
+          image_size,
+          num_inference_steps,
+          fps,
           videos: [],
         },
         pollInterval: 5000,
